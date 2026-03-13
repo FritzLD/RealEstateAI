@@ -33,6 +33,9 @@ _RATE_KEYWORDS      = {"rate", "rates", "mortgage", "30 year", "30yr", "interest
                         "refinanc", "refi", "payment", "afford"}
 _TREND_KEYWORDS     = {"trend", "change", "growing", "declining", "increase",
                         "decrease", "year over year", "yoy", "momentum", "direction"}
+_PRICE_KEYWORDS     = {"price", "sale price", "home price", "average price", "avg price",
+                        "dollar", "volume", "sales volume", "per home", "cost", "value",
+                        "how much", "median", "expensive", "affordable"}
 
 # Map month names (and abbreviations) to month number
 _MONTH_MAP = {
@@ -119,6 +122,11 @@ class RealEstateRetriever(BaseRetriever):
             if doc:
                 docs.append(doc)
 
+        if tokens & _PRICE_KEYWORDS:
+            doc = self._price_doc()
+            if doc:
+                docs.append(doc)
+
         # 3. Month-specific year-over-year lookup
         month_num = _detect_month(query)
         if month_num is not None:
@@ -195,6 +203,55 @@ class RealEstateRetriever(BaseRetriever):
                 f"- Historical sales low: {t['low_sales_value']:,} units in {t['low_sales_month']}"
             )
             return Document(page_content=content, metadata={"type": "live_trends"})
+        except Exception:
+            return None
+
+    def _price_doc(self) -> Document | None:
+        """
+        Compute average sale price per home by year (Sales_Volume / Sales)
+        and return as a formatted table for the LLM context.
+        """
+        try:
+            df = self.loader.df
+            if "Sales_Volume" not in df.columns or "Sales" not in df.columns:
+                return None
+
+            annual = df.groupby(df.index.year).agg(
+                total_volume=("Sales_Volume", "sum"),
+                total_sales=("Sales",         "sum"),
+            )
+            annual = annual[annual["total_sales"] > 0]
+            annual["avg_price"] = (annual["total_volume"] / annual["total_sales"]).round(0)
+
+            lines = [
+                "Dayton MSA – Average Sale Price Per Home by Year",
+                "(calculated as: Annual Sales Volume / Annual Number of Sales)",
+                "-" * 60,
+            ]
+            prev_price = None
+            for yr, row in annual.iterrows():
+                chg_str = ""
+                if prev_price and prev_price > 0:
+                    chg = (row["avg_price"] - prev_price) / prev_price * 100
+                    chg_str = f"  ({chg:+.1f}% YoY)"
+                lines.append(
+                    f"  {yr}: ${row['avg_price']:,.0f}{chg_str}"
+                    f"  |  {int(row['total_sales']):,} sales"
+                    f"  |  ${row['total_volume']:,.0f} total volume"
+                )
+                prev_price = row["avg_price"]
+
+            # Trailing 12-month figure
+            recent  = df.tail(12)
+            total_s = recent["Sales"].sum()
+            if total_s > 0:
+                recent_price = recent["Sales_Volume"].sum() / total_s
+                lines.append(f"\nTrailing 12-Month Average Sale Price: ${recent_price:,.0f}/home")
+
+            return Document(
+                page_content="\n".join(lines),
+                metadata={"type": "price_analysis"},
+            )
         except Exception:
             return None
 

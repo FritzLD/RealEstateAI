@@ -404,10 +404,16 @@ class RealEstateDataLoader:
                 if "Disparity_pct" in yd.columns and yd["Disparity_pct"].notna().any()
                 else ""
             )
+            price_str = ""
+            if "Sales_Volume" in yd.columns:
+                yr_sales = yd["Sales"].sum()
+                if yr_sales > 0:
+                    avg_price = yd["Sales_Volume"].sum() / yr_sales
+                    price_str = f", avg sale price ${avg_price:,.0f}"
             yoy_rows.append(
                 f"  {yr}: avg monthly sales {yd['Sales'].mean():.0f}, "
                 f"avg active listings {yd['Active'].mean():.0f}"
-                f"{rate_str}{disparity_str}"
+                f"{rate_str}{disparity_str}{price_str}"
             )
         docs.append(Document(
             page_content=(
