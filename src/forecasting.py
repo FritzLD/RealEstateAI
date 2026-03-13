@@ -115,22 +115,42 @@ class MarketForecaster:
         seasonal_order: tuple | None = None,
     ) -> object:
         """
-        Fit a SARIMAX model using fixed orders (fast path).
+        Fit a SARIMAX model.
 
-        Orders default to config.SARIMAX_ORDER / SARIMAX_SEASONAL_ORDER —
-        standard SARIMA(1,1,1)(1,1,1,12) for monthly real estate data.
-        Passing explicit orders overrides the defaults (used by evaluate_models).
-        Auto_arima has been removed to avoid the ~90-second grid search on
-        every app load, which caused timeouts on Streamlit Cloud.
+        If order/seasonal_order are provided they are used directly (fast path –
+        skips auto_arima).  Otherwise auto_arima discovers them (slow path).
+        Tighter search bounds and n_fits cap keep the slow path reasonable.
         """
-        order          = order          or config.SARIMAX_ORDER
-        seasonal_order = seasonal_order or config.SARIMAX_SEASONAL_ORDER
-
         log_series = self._safe_log(series.dropna())
         exog = self._get_exog()
         if exog is not None:
             exog = exog.reindex(log_series.index).dropna()
             log_series = log_series.reindex(exog.index)
+
+        if order is None or seasonal_order is None:
+            try:
+                import pmdarima as pm
+            except ImportError as e:
+                raise ImportError("pmdarima is required for SARIMAX forecasting.") from e
+
+            auto = pm.auto_arima(
+                log_series,
+                exogenous=exog,
+                start_p=1, start_q=1,
+                max_p=3,   max_q=2,
+                start_P=0, start_Q=0,
+                max_P=1,   max_Q=1,
+                m=12,
+                seasonal=True,
+                stepwise=True,
+                suppress_warnings=True,
+                error_action="ignore",
+                information_criterion="aic",
+                maxiter=50,
+                n_fits=15,          # cap grid search iterations
+            )
+            order          = auto.order
+            seasonal_order = auto.seasonal_order
 
         from statsmodels.tsa.statespace.sarimax import SARIMAX as _SARIMAX
 
