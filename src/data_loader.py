@@ -239,6 +239,12 @@ class RealEstateDataLoader:
             ),
             "avg_sales_12mo":    round(df["Sales"].iloc[-12:].mean(), 1),
             "avg_active_12mo":   round(df["Active"].iloc[-12:].mean(), 1),
+            # Historical mean disparity used as balanced-market baseline
+            "balanced_threshold_pct": round(float(df["Disparity_pct"].mean()), 1),
+            "market_condition":  (
+                "Seller's Market" if df["Disparity_pct"].iloc[-1] < df["Disparity_pct"].mean()
+                else "Buyer's Market"
+            ),
         }
 
     def get_disparity_stats(self) -> dict:

@@ -134,9 +134,36 @@ def render_dashboard(sys: dict) -> None:
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Active Listings",    f"{s['current_active']:,}",  f"{s['yoy_active_chg']:+}% YoY")
     c2.metric("Monthly Sales",      f"{s['current_sales']:,}",   f"{s['yoy_sales_chg']:+}% YoY")
-    c3.metric("Market Disparity %", f"{s['disparity_pct']}%")
+    c3.metric(
+        "Market Disparity %",
+        f"{s['disparity_pct']}%",
+        delta=f"{s['disparity_pct'] - s['balanced_threshold_pct']:+.1f}% vs hist. mean ({s['balanced_threshold_pct']}%)",
+        delta_color="off",
+    )
     c4.metric("30-Yr Mortgage Rate",f"{s['current_rate']}%")
     c5.metric("12-Mo Avg Sales",    f"{s['avg_sales_12mo']:,.0f}")
+
+    # ── Market Disparity definition ───────────────────────────────────────────
+    condition     = s["market_condition"]
+    current_pct   = s["disparity_pct"]
+    mean_pct      = s["balanced_threshold_pct"]
+    diff          = current_pct - mean_pct
+    condition_note = (
+        f"Currently **{abs(diff):.1f}% below** the historical mean — trending toward a **Seller's Market**."
+        if diff < -2 else
+        f"Currently **{abs(diff):.1f}% above** the historical mean — trending toward a **Buyer's Market**."
+        if diff > 2 else
+        "Currently **near the historical mean** — market is approaching **Balanced** conditions."
+    )
+    st.info(
+        f"**📊 What is Market Disparity %?**  "
+        f"Market Disparity % = (Active Listings − Monthly Sales) ÷ Active Listings. "
+        f"It measures how much unsold inventory exists relative to total listings. "
+        f"A **lower %** means sales are absorbing more of the available supply — a **Seller's Market**. "
+        f"A **higher %** means inventory is building faster than it sells — a **Buyer's Market**. "
+        f"The Dayton MSA historical mean is **{mean_pct}%**, which represents a **Balanced Market** for this area. "
+        f"Current reading: **{current_pct}% ({condition})**. {condition_note}"
+    )
 
     viz = sys["visualizer"]
     st.plotly_chart(viz.active_vs_sales_trend(),    use_container_width=True)
