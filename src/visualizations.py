@@ -175,10 +175,12 @@ class RealEstateVisualizer:
                 line=dict(color=_PALETTE[0], width=2),
             ))
 
-        # Balanced-market threshold
+        # Balanced-market baseline = historical mean disparity %
+        # Uses actual Dayton MSA data average to remove long-run bias
+        mean_disparity = float(df["Disparity_pct"].mean())
         fig.add_hline(
-            y=50, line_dash="dash", line_color="green",
-            annotation_text="Balanced Market (50%)",
+            y=mean_disparity, line_dash="dash", line_color="green",
+            annotation_text=f"Historical Mean ({mean_disparity:.1f}%)",
             annotation_position="bottom right",
         )
 

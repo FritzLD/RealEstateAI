@@ -249,9 +249,12 @@ class RealEstateDataLoader:
             "avg_disparity_pct_12mo": round(df["Disparity_pct"].iloc[-12:].mean(), 1),
             "max_disparity_pct":      round(float(df["Disparity_pct"].max()), 1),
             "min_disparity_pct":      round(float(df["Disparity_pct"].min()), 1),
-            "balanced_threshold_pct": 50.0,
+            # Historical mean disparity % used as balanced-market baseline.
+            # Computed from actual Dayton MSA data to remove long-run bias
+            # rather than using an arbitrary fixed threshold.
+            "balanced_threshold_pct": round(float(df["Disparity_pct"].mean()), 1),
             "market_condition":       (
-                "Seller's Market" if df["Disparity_pct"].iloc[-1] < 50
+                "Seller's Market" if df["Disparity_pct"].iloc[-1] < df["Disparity_pct"].mean()
                 else "Buyer's Market"
             ),
         }
@@ -319,8 +322,8 @@ class RealEstateDataLoader:
                 f"- Current disparity %: {d['current_disparity_pct']}%\n"
                 f"- 12-month average disparity %: {d['avg_disparity_pct_12mo']}%\n"
                 f"- Market condition: {d['market_condition']}\n"
-                f"- Balanced market threshold: {d['balanced_threshold_pct']}%\n"
-                f"  (Below 50% = more demand than supply = Seller's Market)\n"
+                f"- Balanced market baseline: {d['balanced_threshold_pct']}% (historical mean disparity)\n"
+                f"  (Below {d['balanced_threshold_pct']}% = tighter than historical average = Seller's Market)\n"
                 f"- All-time high disparity %: {d['max_disparity_pct']}%\n"
                 f"- All-time low disparity %: {d['min_disparity_pct']}%"
             ),
