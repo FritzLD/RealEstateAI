@@ -155,6 +155,92 @@ class RealEstateVisualizer:
             height=430,
         )
 
+    # ── 3b. All-models forecast chart ────────────────────────────────────────
+
+    def all_models_forecast_chart(self, saved: dict) -> go.Figure:
+        """
+        All sales-model forecasts overlaid on historical Sales bars.
+        Highlights the best model (★); CI bands shown for SARIMAX and Prophet only.
+
+        Parameters
+        ----------
+        saved : dict loaded from data/forecasts/forecasts.json
+        """
+        df  = self.df
+        fig = go.Figure()
+
+        # Historical sales as muted gray bars
+        fig.add_trace(go.Bar(
+            x=df.index, y=df["Sales"],
+            name="Historical Sales",
+            marker_color="rgba(150,150,150,0.45)",
+        ))
+
+        # Per-model color pairs: (line color, CI fill rgba)
+        _MCOLORS = {
+            "SARIMAX":  ("#1f77b4", "rgba(31,119,180,0.12)"),
+            "Prophet":  ("#ff7f0e", "rgba(255,127,14,0.12)"),
+            "DNN":      ("#2ca02c", "rgba(44,160,44,0.12)"),
+            "CNN":      ("#d62728", "rgba(214,39,40,0.12)"),
+            "LSTM":     ("#9467bd", "rgba(148,103,189,0.12)"),
+            "CNN_LSTM": ("#8c564b", "rgba(140,86,75,0.12)"),
+        }
+
+        best_model  = saved.get("best_model", "")
+        models_dict = saved.get("models", {})
+
+        # Sales-target models only — skip SARIMAX_Active (active listings)
+        sales_models = [k for k in models_dict if k != "SARIMAX_Active"]
+
+        for name in sales_models:
+            m     = models_dict[name]
+            dates = pd.to_datetime(m["dates"])
+            fc    = m["forecast"]
+            color, fill = _MCOLORS.get(name, ("#555555", "rgba(85,85,85,0.12)"))
+            is_best = (name == best_model)
+
+            # CI shaded band — only for models that include lower/upper bounds
+            if "lower" in m and "upper" in m:
+                upper = m["upper"]
+                lower = m["lower"]
+                fig.add_trace(go.Scatter(
+                    x=list(dates) + list(dates[::-1]),
+                    y=upper + lower[::-1],
+                    fill="toself", fillcolor=fill,
+                    line=dict(color="rgba(255,255,255,0)"),
+                    name=f"{name} 80% CI", showlegend=False,
+                    hoverinfo="skip",
+                ))
+
+            label = f"★ {name} (best)" if is_best else name
+            fig.add_trace(go.Scatter(
+                x=dates, y=fc,
+                name=label,
+                line=dict(
+                    color=color,
+                    width=3.5 if is_best else 1.8,
+                    dash="solid" if is_best else "dot",
+                ),
+                mode="lines+markers" if is_best else "lines",
+            ))
+
+        # Vertical divider separating history from forecast horizon
+        if sales_models:
+            first_date = pd.to_datetime(models_dict[sales_models[0]]["dates"][0])
+            fig.add_vline(
+                x=first_date, line_dash="dash", line_color="gray", line_width=1,
+                annotation_text="Forecast →",
+                annotation_position="top right",
+            )
+
+        data_through = saved.get("data_through", "")
+        title = "12-Month Sales Forecast – All Models"
+        if data_through:
+            title += f"  (data through {data_through})"
+
+        fig.update_yaxes(title_text="Sales (units)")
+        return self._layout(fig, title, height=520)
+
     # ── 4. Market disparity chart ─────────────────────────────────────────────
 
     def disparity_chart(self) -> go.Figure:

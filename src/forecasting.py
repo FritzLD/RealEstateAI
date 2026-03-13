@@ -16,7 +16,9 @@ Key fixes applied
 
 from __future__ import annotations
 
+import json
 import warnings
+from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -27,6 +29,32 @@ from src import config
 # Suppress harmless convergence/frequency warnings during fitting
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+# ── Pre-computed forecast helpers ─────────────────────────────────────────────
+
+_FORECASTS_PATH = config.DATA_DIR / "forecasts" / "forecasts.json"
+
+
+def load_saved_forecasts() -> dict | None:
+    """
+    Load pre-computed forecast results saved by scripts/run_monthly_forecast.py.
+    Returns None if the file doesn't exist yet (first run before script has been run).
+    """
+    if _FORECASTS_PATH.exists():
+        with open(_FORECASTS_PATH, "r") as f:
+            return json.load(f)
+    return None
+
+
+def save_forecasts(results: dict) -> None:
+    """
+    Save forecast results dict to JSON.
+    Called by scripts/run_monthly_forecast.py — not by the Streamlit app.
+    """
+    _FORECASTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(_FORECASTS_PATH, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"Forecasts saved → {_FORECASTS_PATH}")
 
 
 class MarketForecaster:

@@ -19,7 +19,7 @@ import streamlit as st
 
 from src import config
 from src.data_loader import RealEstateDataLoader
-from src.forecasting import MarketForecaster
+from src.forecasting import MarketForecaster, load_saved_forecasts
 from src.knowledge_base import KnowledgeBase
 from src.llm_chain import RealEstateChain
 from src.refi_analysis import RefiAnalyzer
@@ -222,18 +222,24 @@ def render_chat(sys: dict) -> None:
 
 # ── Tab 3: Forecasts & Analysis ───────────────────────────────────────────────
 
-@st.cache_resource(show_spinner="Fitting SARIMAX forecast models…")
+@st.cache_resource(show_spinner="Loading forecast data…")
 def run_forecasts(_forecaster: MarketForecaster, _refi: RefiAnalyzer):
     """
-    Fits the two SARIMAX models and computes refi windows.
-    Cached by forecaster object identity — runs once per session.
-    Model evaluation (evaluate_models) is intentionally excluded here
-    and triggered on-demand to avoid running auto_arima a third time.
+    Primary path: load pre-computed forecasts saved by run_monthly_forecast.py.
+    Fallback: fit SARIMAX + Prophet live if no saved file exists yet.
+    Returns (saved_dict_or_None, fc_sales, ci_sales, fc_active, ci_active, refi_df).
     """
+    refi_df = _refi.find_refi_windows()
+
+    # ── Try pre-computed first (instant) ──────────────────────────────────────
+    saved = load_saved_forecasts()
+    if saved:
+        return saved, None, None, None, None, refi_df
+
+    # ── Fallback: fit SARIMAX live (no neural nets on cloud) ──────────────────
     fc_sales,  ci_sales  = _forecaster.forecast_sarimax_sales()
     fc_active, ci_active = _forecaster.forecast_sarimax_active()
-    refi_df = _refi.find_refi_windows()
-    return fc_sales, ci_sales, fc_active, ci_active, refi_df
+    return None, fc_sales, ci_sales, fc_active, ci_active, refi_df
 
 
 def render_forecasts(sys: dict) -> None:
@@ -243,32 +249,69 @@ def render_forecasts(sys: dict) -> None:
     refi       = sys["refi"]
     viz        = sys["visualizer"]
 
-    with st.spinner("Fitting forecast models…"):
-        fc_sales, ci_sales, fc_active, ci_active, refi_df = run_forecasts(
+    with st.spinner("Loading forecasts…"):
+        saved, fc_sales, ci_sales, fc_active, ci_active, refi_df = run_forecasts(
             forecaster, refi
         )
 
-    # Forecast charts
-    col1, col2 = st.columns(2)
-    with col1:
-        st.plotly_chart(viz.sales_forecast_chart(fc_sales, ci_sales), use_container_width=True)
-    with col2:
-        st.plotly_chart(viz.active_forecast_chart(fc_active, ci_active), use_container_width=True)
+    if saved:
+        # ── Pre-computed path: all 6 models available ─────────────────────────
+        st.success(
+            f"📂 Forecasts loaded from pre-computed file "
+            f"(generated {saved.get('generated_at','')[:10]}, "
+            f"data through **{saved.get('data_through','')}**)"
+        )
+        st.plotly_chart(viz.all_models_forecast_chart(saved), use_container_width=True)
 
-    # Model comparison — on-demand to avoid a third auto_arima run
-    st.subheader("Model Accuracy Comparison")
-    st.caption("Compares SARIMAX vs Prophet on a held-out 12-month test set.")
-    if st.button("▶ Run Model Comparison", key="run_eval"):
-        with st.spinner("Evaluating models on held-out test data…"):
-            mse_dict = forecaster.evaluate_models("Sales")
-        if mse_dict:
-            st.plotly_chart(viz.model_comparison_chart(mse_dict), use_container_width=True)
-            st.caption(
-                "MSE computed on the last 12 months of data (held-out), "
-                "not on training data — a fair out-of-sample comparison."
+        col1, col2 = st.columns(2)
+        with col1:
+            if "SARIMAX" in saved["models"]:
+                import pandas as pd
+                m = saved["models"]["SARIMAX"]
+                fc  = pd.Series(m["forecast"], index=pd.to_datetime(m["dates"]), name="forecast")
+                ci  = pd.DataFrame({"lower": m["lower"], "upper": m["upper"]},
+                                   index=pd.to_datetime(m["dates"]))
+                st.plotly_chart(viz.sales_forecast_chart(fc, ci), use_container_width=True)
+        with col2:
+            if "SARIMAX_Active" in saved["models"]:
+                import pandas as pd
+                m = saved["models"]["SARIMAX_Active"]
+                fc  = pd.Series(m["forecast"], index=pd.to_datetime(m["dates"]), name="forecast")
+                ci  = pd.DataFrame({"lower": m["lower"], "upper": m["upper"]},
+                                   index=pd.to_datetime(m["dates"]))
+                st.plotly_chart(viz.active_forecast_chart(fc, ci), use_container_width=True)
+
+        if saved.get("mse_scores"):
+            st.plotly_chart(
+                viz.model_comparison_chart(saved["mse_scores"]), use_container_width=True
             )
-        else:
-            st.info("Not enough data to evaluate models.")
+            best = saved.get("best_model", "")
+            if best:
+                st.caption(
+                    f"✅ **Best model: {best}** "
+                    f"(MSE {saved['mse_scores'].get(best, 0):,.0f} on held-out 12-month test set). "
+                    "MSE computed locally — not on Streamlit Cloud."
+                )
+
+    else:
+        # ── Live fallback: SARIMAX only ───────────────────────────────────────
+        st.info(
+            "⚡ No pre-computed forecasts found. Showing live SARIMAX only. "
+            "Run `python scripts/run_monthly_forecast.py` locally to enable all 6 models."
+        )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(viz.sales_forecast_chart(fc_sales, ci_sales), use_container_width=True)
+        with col2:
+            st.plotly_chart(viz.active_forecast_chart(fc_active, ci_active), use_container_width=True)
+
+        st.subheader("Model Accuracy Comparison")
+        st.caption("Compares SARIMAX vs Prophet on a held-out 12-month test set.")
+        if st.button("▶ Run Model Comparison", key="run_eval"):
+            with st.spinner("Evaluating models…"):
+                mse_dict = forecaster.evaluate_models("Sales")
+            if mse_dict:
+                st.plotly_chart(viz.model_comparison_chart(mse_dict), use_container_width=True)
 
     # Refi analysis
     st.subheader("Refinancing Opportunity Analysis")

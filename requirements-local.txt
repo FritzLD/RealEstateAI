@@ -1,0 +1,10 @@
+# Local-only requirements for running scripts/run_monthly_forecast.py
+# NOT used by Streamlit Cloud — only install this on your local machine
+#
+# Usage (first time only):
+#   pip install -r requirements-local.txt
+
+-r requirements.txt
+
+# Deep learning (too large for Streamlit Cloud free tier)
+tensorflow>=2.15.0
