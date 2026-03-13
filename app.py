@@ -79,6 +79,14 @@ def build_system(api_key: str, model_name: str) -> dict:
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 def render_sidebar() -> str:
+    # ── Branding photo ────────────────────────────────────────────────────────
+    photo_path = Path(__file__).parent / "assets" / "profile.jpg"
+    if not photo_path.exists():
+        # Also accept .png
+        photo_path = Path(__file__).parent / "assets" / "profile.png"
+    if photo_path.exists():
+        st.sidebar.image(str(photo_path), use_column_width=True)
+
     st.sidebar.title(f"{config.APP_ICON} RealEstateAI")
     st.sidebar.markdown("**Dayton MSA Market Intelligence**")
     st.sidebar.divider()
