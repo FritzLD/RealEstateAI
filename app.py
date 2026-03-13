@@ -89,6 +89,20 @@ def render_sidebar() -> str:
 
     st.sidebar.title(f"{config.APP_ICON} RealEstateAI")
     st.sidebar.markdown("**Dayton MSA Market Intelligence**")
+
+    # ── Contact card ──────────────────────────────────────────────────────────
+    st.sidebar.markdown(
+        """
+**Frederick Duff MBA**
+Senior Mortgage Banker
+
+📧 [FDuff@QueenCitymortgage.net](mailto:FDuff@QueenCitymortgage.net)
+📞 (513) 445-9811 &nbsp;|&nbsp; (502) 345-0682
+🪪 NMLS 835831
+📍 Licensed in Ohio, Kentucky & Florida
+🌐 [Apply Online](https://www.pre-qualifymymortgage.com)
+        """
+    )
     st.sidebar.divider()
 
     model = st.sidebar.selectbox(
