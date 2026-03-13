@@ -225,10 +225,13 @@ class RealEstateVisualizer:
             ))
 
         # Vertical divider separating history from forecast horizon
+        # Note: pass x as an ISO string — Plotly's add_vline annotation code
+        # cannot do arithmetic on a raw pandas Timestamp (raises TypeError).
         if sales_models:
             first_date = pd.to_datetime(models_dict[sales_models[0]]["dates"][0])
             fig.add_vline(
-                x=first_date, line_dash="dash", line_color="gray", line_width=1,
+                x=first_date.strftime("%Y-%m-%d"),
+                line_dash="dash", line_color="gray", line_width=1,
                 annotation_text="Forecast →",
                 annotation_position="top right",
             )
