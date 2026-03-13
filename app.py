@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 import streamlit as st
 
 from src import config
-from src.auth import render_access_gate
 from src.data_loader import RealEstateDataLoader
 from src.forecasting import MarketForecaster, load_saved_forecasts
 from src.knowledge_base import KnowledgeBase
@@ -28,8 +27,6 @@ from src.retriever import RealEstateRetriever
 from src.visualizations import RealEstateVisualizer
 
 # ── Page config ───────────────────────────────────────────────────────────────
-# Note: render_access_gate() may call st.set_page_config() internally when
-# showing the gate. The main app config below only runs when authenticated.
 
 st.set_page_config(
     page_title=config.APP_TITLE,
@@ -350,12 +347,6 @@ def render_forecasts(sys: dict) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    # ── Access gate (must be first) ───────────────────────────────────────────
-    # Shows a contact-info + access-code form to unauthenticated visitors.
-    # Bypassed automatically when no [access_codes] section exists (local dev).
-    if not render_access_gate():
-        st.stop()
-
     model = render_sidebar()
 
     # Resolve API key from environment / Streamlit secrets (never from user input)
