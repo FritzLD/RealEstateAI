@@ -27,6 +27,15 @@ MA_LONG          = 12      # long moving-average window (months)
 VIF_THRESHOLD    = 10.0    # drop exog columns above this VIF
 TEST_HOLDOUT     = 12      # months held out for model evaluation
 
+# ── SARIMAX fixed orders ───────────────────────────────────────────────────────
+# Standard orders for monthly real estate data with annual seasonality.
+# Using fixed orders eliminates the slow auto_arima grid search on every load,
+# reducing forecast fitting from ~90 seconds to ~15 seconds.
+# (p,d,q) non-seasonal:  AR=1, one difference, MA=1
+# (P,D,Q,m) seasonal:    AR=1, one seasonal difference, MA=1, period=12 months
+SARIMAX_ORDER          = (1, 1, 1)
+SARIMAX_SEASONAL_ORDER = (1, 1, 1, 12)
+
 # ── Refinancing analysis defaults ─────────────────────────────────────────────
 REFI_THRESHOLD_PP   = 0.75   # pp above current rate to flag refi window
 REFI_LOAN_AMOUNTS   = [150_000, 300_000]  # $ loan sizes for savings calc
