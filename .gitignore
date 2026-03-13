@@ -1,6 +1,9 @@
 # Environment - NEVER commit your API key
 .env
 
+# Streamlit secrets - NEVER commit (contains API keys + SMTP password)
+.streamlit/secrets.toml
+
 # ChromaDB vector store - rebuilt automatically on first run
 chroma_db/
 
