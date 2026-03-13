@@ -1,0 +1,22 @@
+# Environment - NEVER commit your API key
+.env
+
+# ChromaDB vector store - rebuilt automatically on first run
+chroma_db/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# VS Code
+.vscode/
+
+# Jupyter (keep notebooks out of the deployed project)
+*.ipynb
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
