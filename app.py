@@ -78,24 +78,16 @@ def build_system(api_key: str, model_name: str) -> dict:
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
-def render_sidebar() -> tuple[str, str, bool]:
+def render_sidebar() -> str:
     st.sidebar.title(f"{config.APP_ICON} RealEstateAI")
     st.sidebar.markdown("**Dayton MSA Market Intelligence**")
     st.sidebar.divider()
 
-    api_key = st.sidebar.text_input(
-        "OpenAI API Key",
-        value=config.OPENAI_API_KEY,
-        type="password",
-        help="Your OpenAI key.  Set OPENAI_API_KEY in .env to avoid entering it here.",
-    )
     model = st.sidebar.selectbox(
         "Model",
         ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"],
         index=0,
     )
-
-    init_clicked = st.sidebar.button("Initialize System", type="primary", use_container_width=True)
 
     if "system" in st.session_state:
         s = st.session_state.system["summary"]
@@ -108,7 +100,7 @@ def render_sidebar() -> tuple[str, str, bool]:
         st.sidebar.metric("30-Yr Rate",      f"{s['current_rate']}%")
         st.sidebar.metric("YoY Sales Δ",     f"{s['yoy_sales_chg']:+}%")
 
-    return api_key, model, init_clicked
+    return model
 
 
 # ── Tab 1: Market Dashboard ───────────────────────────────────────────────────
@@ -252,28 +244,26 @@ def render_forecasts(sys: dict) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    api_key, model, init_clicked = render_sidebar()
+    model = render_sidebar()
 
-    if init_clicked:
-        if not api_key:
-            st.error("Please enter your OpenAI API key in the sidebar.")
-            st.stop()
-        # Clear cached system so it rebuilds with new key/model
-        st.cache_resource.clear()
-        st.session_state.system = build_system(api_key, model)
-        st.rerun()
+    # Resolve API key from environment / Streamlit secrets (never from user input)
+    api_key = config.OPENAI_API_KEY
 
-    # Auto-init if key is available and system not yet loaded
-    if "system" not in st.session_state and api_key:
+    if not api_key:
+        st.error(
+            "⚠️ No OpenAI API key found.  "
+            "Add `OPENAI_API_KEY` to your `.env` file (local) or "
+            "Streamlit Cloud **Secrets** (deployed)."
+        )
+        st.stop()
+
+    # Auto-initialise once per session
+    if "system" not in st.session_state:
         try:
             st.session_state.system = build_system(api_key, model)
         except Exception as e:
             st.error(f"Initialisation failed: {e}")
             st.stop()
-
-    if "system" not in st.session_state:
-        st.info("Enter your OpenAI API key in the sidebar and click **Initialize System**.")
-        st.stop()
 
     system = st.session_state.system
 
