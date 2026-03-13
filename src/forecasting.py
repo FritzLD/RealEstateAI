@@ -50,6 +50,12 @@ class MarketForecaster:
         self._prophet_sales:  object | None = None
         self._prophet_active: object | None = None
 
+        # Cache discovered ARIMA orders so evaluate_models can skip auto_arima
+        self._order_sales:          tuple | None = None
+        self._seasonal_order_sales: tuple | None = None
+        self._order_active:          tuple | None = None
+        self._seasonal_order_active: tuple | None = None
+
     # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _ensure_freq(self) -> None:
@@ -102,32 +108,49 @@ class MarketForecaster:
 
     # ── SARIMAX ───────────────────────────────────────────────────────────────
 
-    def _fit_sarimax(self, series: pd.Series) -> object:
-        """Auto-select SARIMAX order via pmdarima.auto_arima and fit."""
-        try:
-            import pmdarima as pm
-        except ImportError as e:
-            raise ImportError("pmdarima is required for SARIMAX forecasting.") from e
+    def _fit_sarimax(
+        self,
+        series: pd.Series,
+        order: tuple | None = None,
+        seasonal_order: tuple | None = None,
+    ) -> object:
+        """
+        Fit a SARIMAX model.
 
+        If order/seasonal_order are provided they are used directly (fast path –
+        skips auto_arima).  Otherwise auto_arima discovers them (slow path).
+        Tighter search bounds and n_fits cap keep the slow path reasonable.
+        """
         log_series = self._safe_log(series.dropna())
         exog = self._get_exog()
         if exog is not None:
             exog = exog.reindex(log_series.index).dropna()
             log_series = log_series.reindex(exog.index)
 
-        auto = pm.auto_arima(
-            log_series,
-            exogenous=exog,
-            m=12,
-            seasonal=True,
-            stepwise=True,
-            suppress_warnings=True,
-            error_action="ignore",
-            information_criterion="aic",
-            maxiter=50,
-        )
-        order         = auto.order
-        seasonal_order = auto.seasonal_order
+        if order is None or seasonal_order is None:
+            try:
+                import pmdarima as pm
+            except ImportError as e:
+                raise ImportError("pmdarima is required for SARIMAX forecasting.") from e
+
+            auto = pm.auto_arima(
+                log_series,
+                exogenous=exog,
+                start_p=1, start_q=1,
+                max_p=3,   max_q=2,
+                start_P=0, start_Q=0,
+                max_P=1,   max_Q=1,
+                m=12,
+                seasonal=True,
+                stepwise=True,
+                suppress_warnings=True,
+                error_action="ignore",
+                information_criterion="aic",
+                maxiter=50,
+                n_fits=15,          # cap grid search iterations
+            )
+            order          = auto.order
+            seasonal_order = auto.seasonal_order
 
         from statsmodels.tsa.statespace.sarimax import SARIMAX as _SARIMAX
 
@@ -143,9 +166,14 @@ class MarketForecaster:
 
     def fit_sarimax_sales(self) -> None:
         self._sarimax_sales = self._fit_sarimax(self.df["Sales"])
+        # Cache orders so evaluate_models can reuse them without re-running auto_arima
+        self._order_sales          = self._sarimax_sales.model.order
+        self._seasonal_order_sales = self._sarimax_sales.model.seasonal_order
 
     def fit_sarimax_active(self) -> None:
         self._sarimax_active = self._fit_sarimax(self.df["Active"])
+        self._order_active          = self._sarimax_active.model.order
+        self._seasonal_order_active = self._sarimax_active.model.seasonal_order
 
     def forecast_sarimax_sales(
         self, steps: int = config.FORECAST_HORIZON
@@ -254,9 +282,25 @@ class MarketForecaster:
         actual   = self.df[target].iloc[-test_n:].values
         results: Dict[str, float] = {}
 
-        # SARIMAX
+        # Retrieve cached ARIMA orders so we skip auto_arima on the train subset
+        if target == "Sales":
+            cached_order    = self._order_sales
+            cached_seasonal = self._seasonal_order_sales
+        else:
+            cached_order    = self._order_active
+            cached_seasonal = self._seasonal_order_active
+
+        # SARIMAX – reuse discovered orders (fast path)
         try:
             train_forecaster = MarketForecaster(train_df, self.exog_cols)
+            col = "Sales" if target == "Sales" else "Active"
+            fitted = train_forecaster._fit_sarimax(
+                train_df[col],
+                order=cached_order,
+                seasonal_order=cached_seasonal,
+            )
+            train_forecaster._sarimax_sales  = fitted if target == "Sales" else None
+            train_forecaster._sarimax_active = fitted if target != "Sales" else None
             if target == "Sales":
                 fc, _ = train_forecaster.forecast_sarimax_sales(steps=test_n)
             else:

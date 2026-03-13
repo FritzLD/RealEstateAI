@@ -181,14 +181,18 @@ def render_chat(sys: dict) -> None:
 
 # ── Tab 3: Forecasts & Analysis ───────────────────────────────────────────────
 
-@st.cache_resource(show_spinner="Running forecast models (this takes a minute)…")
+@st.cache_resource(show_spinner="Fitting SARIMAX forecast models…")
 def run_forecasts(_forecaster: MarketForecaster, _refi: RefiAnalyzer):
-    """Cache-busted by forecaster object identity.  Runs once per session."""
+    """
+    Fits the two SARIMAX models and computes refi windows.
+    Cached by forecaster object identity — runs once per session.
+    Model evaluation (evaluate_models) is intentionally excluded here
+    and triggered on-demand to avoid running auto_arima a third time.
+    """
     fc_sales,  ci_sales  = _forecaster.forecast_sarimax_sales()
     fc_active, ci_active = _forecaster.forecast_sarimax_active()
-    mse_dict = _forecaster.evaluate_models("Sales")
-    refi_df  = _refi.find_refi_windows()
-    return fc_sales, ci_sales, fc_active, ci_active, mse_dict, refi_df
+    refi_df = _refi.find_refi_windows()
+    return fc_sales, ci_sales, fc_active, ci_active, refi_df
 
 
 def render_forecasts(sys: dict) -> None:
@@ -199,7 +203,7 @@ def render_forecasts(sys: dict) -> None:
     viz        = sys["visualizer"]
 
     with st.spinner("Fitting forecast models…"):
-        fc_sales, ci_sales, fc_active, ci_active, mse_dict, refi_df = run_forecasts(
+        fc_sales, ci_sales, fc_active, ci_active, refi_df = run_forecasts(
             forecaster, refi
         )
 
@@ -210,13 +214,20 @@ def render_forecasts(sys: dict) -> None:
     with col2:
         st.plotly_chart(viz.active_forecast_chart(fc_active, ci_active), use_container_width=True)
 
-    # Model comparison
-    if mse_dict:
-        st.plotly_chart(viz.model_comparison_chart(mse_dict), use_container_width=True)
-        st.caption(
-            "MSE is computed on a held-out 12-month test set (last 12 observations), "
-            "not on training data — giving a fair comparison of out-of-sample accuracy."
-        )
+    # Model comparison — on-demand to avoid a third auto_arima run
+    st.subheader("Model Accuracy Comparison")
+    st.caption("Compares SARIMAX vs Prophet on a held-out 12-month test set.")
+    if st.button("▶ Run Model Comparison", key="run_eval"):
+        with st.spinner("Evaluating models on held-out test data…"):
+            mse_dict = forecaster.evaluate_models("Sales")
+        if mse_dict:
+            st.plotly_chart(viz.model_comparison_chart(mse_dict), use_container_width=True)
+            st.caption(
+                "MSE computed on the last 12 months of data (held-out), "
+                "not on training data — a fair out-of-sample comparison."
+            )
+        else:
+            st.info("Not enough data to evaluate models.")
 
     # Refi analysis
     st.subheader("Refinancing Opportunity Analysis")
