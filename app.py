@@ -261,7 +261,32 @@ def render_forecasts(sys: dict) -> None:
             f"(generated {saved.get('generated_at','')[:10]}, "
             f"data through **{saved.get('data_through','')}**)"
         )
-        st.plotly_chart(viz.all_models_forecast_chart(saved), use_container_width=True)
+
+        # ── Best model callout ─────────────────────────────────────────────────
+        best       = saved.get("best_model", "")
+        mse_scores = saved.get("mse_scores", {})
+        if best and mse_scores:
+            ca, cb, cc = st.columns(3)
+            ca.metric("🏆 Best Forecast Model", best)
+            cb.metric("Best Model Test MSE",    f"{mse_scores.get(best, 0):,.0f}")
+            cc.metric("Models Compared",        str(len(mse_scores)))
+
+        # ── Model selector ─────────────────────────────────────────────────────
+        sales_model_names = [k for k in saved.get("models", {}) if k != "SARIMAX_Active"]
+        view_options      = ["Best Model (auto)", "All Models"] + sales_model_names
+        selected_view     = st.selectbox("Select forecast view:", view_options, index=0)
+
+        if selected_view == "Best Model (auto)":
+            chart_model = best if best else "All Models"
+        elif selected_view == "All Models":
+            chart_model = "All Models"
+        else:
+            chart_model = selected_view
+
+        st.plotly_chart(
+            viz.all_models_forecast_chart(saved, selected_model=chart_model),
+            use_container_width=True,
+        )
 
         col1, col2 = st.columns(2)
         with col1:

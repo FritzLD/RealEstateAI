@@ -157,19 +157,33 @@ class RealEstateVisualizer:
 
     # ── 3b. All-models forecast chart ────────────────────────────────────────
 
-    def all_models_forecast_chart(self, saved: dict) -> go.Figure:
+    def all_models_forecast_chart(
+        self,
+        saved: dict,
+        selected_model: str = "All Models",
+    ) -> go.Figure:
         """
-        All sales-model forecasts overlaid on historical Sales bars.
-        Highlights the best model (★); CI bands shown for SARIMAX and Prophet only.
+        Sales forecast chart with two display modes:
+
+        selected_model == "All Models" (default)
+            All 6 sales models overlaid; best model highlighted with ★ and
+            a bold solid line; CI bands for SARIMAX and Prophet.
+
+        selected_model == "<model name>"
+            Focused single-model view: one bold forecast line against the
+            historical bars.  Title includes Frederick's personal branding,
+            matching the original notebook output.
 
         Parameters
         ----------
-        saved : dict loaded from data/forecasts/forecasts.json
+        saved          : dict loaded from data/forecasts/forecasts.json
+        selected_model : "All Models" | "SARIMAX" | "Prophet" | "DNN" |
+                         "CNN" | "LSTM" | "CNN_LSTM"
         """
         df  = self.df
         fig = go.Figure()
 
-        # Historical sales as muted gray bars
+        # Historical sales as muted gray bars (always shown)
         fig.add_trace(go.Bar(
             x=df.index, y=df["Sales"],
             name="Historical Sales",
@@ -188,9 +202,14 @@ class RealEstateVisualizer:
 
         best_model  = saved.get("best_model", "")
         models_dict = saved.get("models", {})
+        single_mode = (selected_model != "All Models")
 
-        # Sales-target models only — skip SARIMAX_Active (active listings)
-        sales_models = [k for k in models_dict if k != "SARIMAX_Active"]
+        # Determine which models to plot
+        if single_mode:
+            sales_models = [selected_model] if selected_model in models_dict else []
+        else:
+            # All sales-target models — skip SARIMAX_Active (active listings)
+            sales_models = [k for k in models_dict if k != "SARIMAX_Active"]
 
         for name in sales_models:
             m     = models_dict[name]
@@ -199,7 +218,7 @@ class RealEstateVisualizer:
             color, fill = _MCOLORS.get(name, ("#555555", "rgba(85,85,85,0.12)"))
             is_best = (name == best_model)
 
-            # CI shaded band — only for models that include lower/upper bounds
+            # CI shaded band — shown when lower/upper data is available
             if "lower" in m and "upper" in m:
                 upper = m["upper"]
                 lower = m["lower"]
@@ -208,20 +227,23 @@ class RealEstateVisualizer:
                     y=upper + lower[::-1],
                     fill="toself", fillcolor=fill,
                     line=dict(color="rgba(255,255,255,0)"),
-                    name=f"{name} 80% CI", showlegend=False,
+                    name=f"{name} 80% CI", showlegend=True,
                     hoverinfo="skip",
                 ))
 
-            label = f"★ {name} (best)" if is_best else name
+            # In single-model mode every line is bold+solid; in all-models
+            # mode the best model gets the bold treatment.
+            bold = single_mode or is_best
+            label = name if single_mode else (f"★ {name} (best)" if is_best else name)
             fig.add_trace(go.Scatter(
                 x=dates, y=fc,
                 name=label,
                 line=dict(
                     color=color,
-                    width=3.5 if is_best else 1.8,
-                    dash="solid" if is_best else "dot",
+                    width=3.5 if bold else 1.8,
+                    dash="solid" if bold else "dot",
                 ),
-                mode="lines+markers" if is_best else "lines",
+                mode="lines+markers" if bold else "lines",
             ))
 
         # Vertical divider separating history from forecast horizon.
@@ -247,10 +269,18 @@ class RealEstateVisualizer:
                 font=dict(color="gray", size=11),
             )
 
+        # Build title
         data_through = saved.get("data_through", "")
-        title = "12-Month Sales Forecast – All Models"
-        if data_through:
-            title += f"  (data through {data_through})"
+        if single_mode:
+            # Personal branding title — matches original notebook style
+            title = (
+                f"Sales Forecast  –  {selected_model} Model"
+                f"  |  Frederick Duff MBA  ·  NMLS 835831  ·  (502) 345-0682"
+            )
+        else:
+            title = "12-Month Sales Forecast – All Models"
+            if data_through:
+                title += f"  (data through {data_through})"
 
         fig.update_yaxes(title_text="Sales (units)")
         return self._layout(fig, title, height=520)
