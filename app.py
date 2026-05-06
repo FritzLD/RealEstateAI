@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import streamlit as st
 
 from src import config
-from src.data_loader import RealEstateDataLoader
+from src.data_loader import RealEstateDataLoader, load_reference_documents
 from src.forecasting import MarketForecaster, load_saved_forecasts
 from src.knowledge_base import KnowledgeBase
 from src.llm_chain import RealEstateChain
@@ -49,7 +49,9 @@ def build_system(api_key: str, model_name: str) -> dict:
     # RAG knowledge base
     documents = loader.generate_knowledge_documents()
     kb        = KnowledgeBase(api_key=api_key)
-    kb.get_or_create(documents)
+    market_docs = loader.generate_knowledge_documents()
+    ref_docs = load_reference_documents("docs")
+    vector_store = kb.get_or_create(market_docs + ref_docs)
     base_retriever = kb.get_retriever(k=config.TOP_K_RETRIEVAL)
 
     # Hybrid retriever
