@@ -489,3 +489,29 @@ class RealEstateDataLoader:
             ))
 
         return docs
+
+def load_reference_documents(docs_dir: str | Path = "docs") -> List[Document]:
+    """Load and chunk PDFs from docs/ for vector store ingestion."""
+    from langchain_community.document_loaders import PyPDFLoader
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+    docs_path = Path(docs_dir)
+    if not docs_path.exists():
+        return []
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=150,
+        separators=["\n\n", "\n", ". ", " ", ""],
+    )
+
+    all_docs: List[Document] = []
+    for pdf_path in sorted(docs_path.glob("*.pdf")):
+        loader = PyPDFLoader(str(pdf_path))
+        chunks = splitter.split_documents(loader.load())
+        for chunk in chunks:
+            chunk.metadata["source_file"] = pdf_path.name
+            chunk.metadata["type"] = "reference_document"
+        all_docs.extend(chunks)
+
+    return all_docs
