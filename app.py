@@ -35,6 +35,25 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown(
+    """
+    <style>
+    /* Larger tab labels and emoji icons */
+    .stTabs [data-baseweb="tab-list"] button p {
+        font-size: 1.15rem;
+        font-weight: 500;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding-top: 10px;
+        padding-bottom: 10px;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ── System initialisation (cached) ───────────────────────────────────────────
 
 @st.cache_resource(show_spinner="Loading market data and building knowledge base…")
