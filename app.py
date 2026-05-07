@@ -49,11 +49,12 @@ def build_system(api_key: str, model_name: str) -> dict:
     # RAG knowledge base
     kb        = KnowledgeBase(api_key=api_key)
     market_docs = loader.generate_knowledge_documents()
-    try:
-        ref_docs = load_reference_documents("docs")
-    except Exception as e:
-        st.warning(f"Reference documents could not be loaded:{e}")
-        ref_docs =[]
+    ref_docs = [] # temporarily disable
+    #try:
+    #    ref_docs = load_reference_documents("docs")
+    #except Exception as e:
+    #   st.warning(f"Reference documents could not be loaded:{e}")
+    #    ref_docs =[]
     vector_store = kb.get_or_create(market_docs + ref_docs)
     base_retriever = kb.get_retriever(k=config.TOP_K_RETRIEVAL)
 
