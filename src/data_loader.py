@@ -492,28 +492,22 @@ class RealEstateDataLoader:
 
         return docs
 
-def load_reference_documents(docs_dir: str | Path = "docs") -> List[Document]:
-    """Load and chunk PDFs from docs/ for vector store ingestion."""
-    from langchain_community.document_loaders import PyPDFLoader
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
+def load_reference_documents() -> List[Document]:
+    """
+    Load pre-extracted reference document chunks from data/reference_chunks.json.
 
-    docs_path = Path(docs_dir)
-    if not docs_path.exists():
+    The JSON is generated locally by scripts/extract_reference_docs.py and
+    committed to the repo so Streamlit Cloud never has to parse PDFs at startup.
+    Returns an empty list when the file doesn't exist yet.
+    """
+    import json
+
+    json_path = config.DATA_DIR / "reference_chunks.json"
+    if not json_path.exists():
         return []
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
-        separators=["\n\n", "\n", ". ", " ", ""],
-    )
-
-    all_docs: List[Document] = []
-    for pdf_path in sorted(docs_path.glob("*.pdf")):
-        loader = PyPDFLoader(str(pdf_path))
-        chunks = splitter.split_documents(loader.load())
-        for chunk in chunks:
-            chunk.metadata["source_file"] = pdf_path.name
-            chunk.metadata["type"] = "reference_document"
-        all_docs.extend(chunks)
-
-    return all_docs
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    return [
+        Document(page_content=chunk["page_content"], metadata=chunk["metadata"])
+        for chunk in data.get("chunks", [])
+    ]
