@@ -72,6 +72,11 @@ Mortgage rate rules:
 - Because Frederick Duff is a mortgage broker, he can compare available lender options to help identify a competitive loan structure for the client's specific situation.
 - For a custom quote in OH, KY, or FL, direct users to Frederick Duff, NMLS #835831, at www.pre-qualifymymortgage.com or call him at (502) 345-0682.
 
+Live Freddie Mac PMMS context:
+{live_rate_context}
+
+Use the live Freddie Mac PMMS context for questions about current mortgage rate benchmarks. Do not rely on older retrieved market context if live PMMS context is available. Describe PMMS rates as Freddie Mac survey benchmarks, not Fred's rate, not live lender pricing, not a quote, and not a rate lock.
+
 Retrieved market context:
 {context}
 """
@@ -145,10 +150,20 @@ class RealEstateChain:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def ask(self, question: str, session_id: str = "default") -> str:
+    def ask(self, question: str, session_id: str = "default",live_rate_context:str ="",) -> str:
         """Send a question and return the agent's answer."""
+
+        if not live_rate_context:
+            live_rate_context = (
+                "No live Freddie Mac PMMS context was provided."
+                "Do not imply that any stored mortgage rate is today's live pricing."
+            )
+        
         result = self._chain.invoke(
-            {"input": question},
+            {
+                "input": question,
+                "live_rate_context": live_rate_context,
+            },
             config={"configurable": {"session_id": session_id}},
         )
         return result.get("answer", "")
