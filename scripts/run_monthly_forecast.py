@@ -30,16 +30,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 warnings.filterwarnings("ignore")
 
-from src import config
-from src.data_loader import RealEstateDataLoader
+from src import config # imports project config values
+from src.data_loader import RealEstateDataLoader # imports the data
 from src.forecasting import MarketForecaster, save_forecasts
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-HORIZON     = config.FORECAST_HORIZON   # 12 months
+HORIZON     = config.FORECAST_HORIZON   # 12 months forecast
 SEQ_LEN     = config.SEQ_LENGTH         # 12-month lookback for neural models
-EPOCHS      = 50
-BATCH_SIZE  = 16
+EPOCHS      = 50                        # the training passes that the neural model will use
+BATCH_SIZE  = 16                        # how many samples to run at at time
 TEST_N      = config.TEST_HOLDOUT       # last 12 months held out for MSE
 
 # Features used by neural models (same as original notebooks)
@@ -54,7 +54,7 @@ TARGET = "Sales"
 def _available_features(df: pd.DataFrame) -> list[str]:
     """Return only the NEURAL_FEATURES columns that actually exist in df."""
     return [f for f in NEURAL_FEATURES if f in df.columns]
-
+# defines a helper function to check which features exist 
 
 def _make_sequences(df: pd.DataFrame, features: list[str], target: str, seq_len: int):
     """
