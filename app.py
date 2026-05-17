@@ -121,7 +121,7 @@ Senior Mortgage Banker
 🪪 NMLS 835831
 📍 Licensed in Ohio, Kentucky & Florida
 🌐 [Apply Online](https://www.pre-qualifymymortgage.com)
-Queen City Mortgage is a Equal Housing Lender.         
+    Queen City Mortgage is a Equal Housing Lender.         
         """
     )
     st.sidebar.divider()
