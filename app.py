@@ -121,6 +121,7 @@ Senior Mortgage Banker
 🪪 NMLS 835831
 📍 Licensed in Ohio, Kentucky & Florida
 🌐 [Apply Online](https://www.pre-qualifymymortgage.com)
+Queen City Mortgage is a Equal Housing Lender.         
         """
     )
     st.sidebar.divider()
@@ -204,7 +205,7 @@ def render_dashboard(sys: dict) -> None:
 def render_chat(sys: dict) -> None:
     st.header("AI Real Estate Analyst")
     st.caption(
-        "Ask about the Dayton MSA market, forecasts, mortgage rates, refinancing "
+        "Ask about the Dayton MSA market, forecasts, mortgage rate trends , refinancing "
         "opportunities, seasonal patterns, or anything in the data."
     )
 
