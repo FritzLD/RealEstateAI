@@ -119,9 +119,9 @@ Senior Mortgage Banker / Data Scientist
 
 📧 [FDuff@QueenCitymortgage.net](mailto:FDuff@QueenCitymortgage.net)
 📞 (513) 445-9811 &nbsp;|&nbsp; (502) 345-0682
-🪪 NMLS 835831
+🪪 NMLS 835831                           
 📍 Licensed in Ohio, Kentucky & Florida
-🌐 [Apply Online](https://www.pre-qualifymymortgage.com)
+🌐 [Apply Online](https://www.pre-qualifymymortgage.com)                     
     Queen City Mortgage is a Equal Housing Lender.         
         """
     )
