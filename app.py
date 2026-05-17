@@ -231,7 +231,11 @@ def render_chat(sys: dict) -> None:
             with st.spinner("Analysing…"):
                 live_rate_context = build_pmms_context()
                 
-                answer = chain.ask(prompt, session_id="streamlit",live_rate_context,)
+                answer = chain.ask(
+                    prompt,
+                    session_id="streamlit",
+                    live_rate_context=live_rate_context,
+                )
                 
             st.markdown(answer)
 
