@@ -25,6 +25,7 @@ from src.llm_chain import RealEstateChain
 from src.refi_analysis import RefiAnalyzer
 from src.retriever import RealEstateRetriever
 from src.visualizations import RealEstateVisualizer
+from src.rate_service import build_pmms_context
 
 # ── Page config ───────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ def render_sidebar() -> str:
     st.sidebar.markdown(
         """
 **Frederick Duff MBA**
-Senior Mortgage Banker
+Senior Mortgage Banker / Data Scientist
 
 📧 [FDuff@QueenCitymortgage.net](mailto:FDuff@QueenCitymortgage.net)
 📞 (513) 445-9811 &nbsp;|&nbsp; (502) 345-0682
@@ -228,7 +229,10 @@ def render_chat(sys: dict) -> None:
 
         with st.chat_message("assistant"):
             with st.spinner("Analysing…"):
-                answer = chain.ask(prompt, session_id="streamlit")
+                live_rate_context = build_pmms_context()
+                
+                answer = chain.ask(prompt, session_id="streamlit",live_rate_context,)
+                
             st.markdown(answer)
 
         st.session_state.messages.append({"role": "assistant", "content": answer})
