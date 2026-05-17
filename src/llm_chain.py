@@ -1,22 +1,30 @@
 """
 RealEstateChain
 LangChain 0.3 LCEL RAG chain with conversational memory for the real estate
-AI agent.  Architecture mirrors InsightForge's BusinessIntelligenceChain exactly.
+AI agent.  Architecture mirrors my InsightForge BusinessIntelligenceChain  .
 """
 
-from __future__ import annotations
+from __future__ import annotations  # allows modern type hints to work better
 
-from typing import Dict
+from typing import Dict # imports dict for type annotations
 
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
+from langchain_classic.chains import create_retrieval_chain 
+# creates a RAG chain that retrieves context and answers
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain 
+# creates a chain that stuffs retrieved documents into the prompt
 from langchain_classic.chains.history_aware_retriever import create_history_aware_retriever
+# creates a retriever that understand the chat history
 from langchain_core.chat_history import InMemoryChatMessageHistory
+# stores conversation history in memory 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+# builds chat prompts and inserts prior messages
 from langchain_core.runnables.history import RunnableWithMessageHistory
+# wraps a chain so it can use conversation memory
 from langchain_openai import ChatOpenAI
+# import OpenAI chat model wrapper
 
 from src import config
+# import project settings 
 
 # ── System prompts ─────────────────────────────────────────────────────────────
 
