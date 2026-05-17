@@ -86,24 +86,8 @@ Retrieved market context:
 {context}
 """
 
-
-
-Retrieved market context:
-{context}
-"""
-
-
 class RealEstateChain:
-    """
-    Conversational RAG chain for real estate market intelligence.
-
-    Parameters
-    ----------
-    api_key    : OpenAI API key
-    model_name : LLM model name (default gpt-4o-mini)
-    retriever  : LangChain retriever (typically a RealEstateRetriever instance)
-    temperature: LLM temperature
-    """
+    """Conversational RAG chain for RealEstateAI."""
 
     def __init__(
         self,
@@ -165,7 +149,7 @@ class RealEstateChain:
         self,
         question: str,
         session_id: str = "default",
-        live_rate_context:str ="",
+        live_rate_context:str = "",
     ) -> str:
         """Send a question and return the agent's answer."""
 
