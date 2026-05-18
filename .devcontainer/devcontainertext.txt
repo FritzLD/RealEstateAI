@@ -1,0 +1,148 @@
+from pathlib import Path
+
+content = """DEVCONTAINER.JSON - ANNOTATED REFERENCE
+=========================================
+
+Purpose:
+This file tells GitHub Codespaces or VS Code Dev Containers how to build and run
+your development environment.
+
+In this case, it creates a Python 3.11 environment, installs your app dependencies,
+runs your Streamlit app, and forwards port 8501 so you can preview the app.
+
+Important note:
+devcontainer.json supports JSONC, which means comments are allowed in the actual
+devcontainer.json file. However, this reference file is meant to explain the code
+without cluttering the working configuration file.
+
+
+ORIGINAL DEVCONTAINER FILE WITH COMMENTS
+========================================
+
+{
+  // This is the display name for the container environment.
+  // It appears in VS Code / GitHub Codespaces.
+  "name": "Python 3",
+
+  // This tells Codespaces to use a prebuilt Microsoft Python container image.
+  // Python 3.11 is the Python version.
+  // Bookworm is the Debian Linux version used inside the container.
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+
+  // This section customizes how Codespaces and VS Code behave inside the container.
+  "customizations": {
+
+    // Codespaces-specific settings.
+    "codespaces": {
+
+      // These files automatically open when the Codespace starts.
+      "openFiles": [
+        "README.md",
+        "app.py"
+      ]
+    },
+
+    // VS Code-specific settings.
+    "vscode": {
+
+      // This is where custom VS Code settings could go.
+      // It is currently empty, so no special VS Code settings are being applied.
+      "settings": {},
+
+      // These VS Code extensions are automatically installed in the container.
+      // ms-python.python provides Python support.
+      // ms-python.vscode-pylance provides autocomplete, type checking, and better code intelligence.
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  },
+
+  // This command runs after the repository content is available inside the container.
+  //
+  // What it does:
+  // 1. If packages.txt exists, it updates Linux package lists.
+  // 2. It upgrades existing Linux packages.
+  // 3. It installs Linux packages listed in packages.txt.
+  // 4. If requirements.txt exists, it installs Python packages from that file.
+  // 5. It installs Streamlit.
+  // 6. It prints a confirmation message.
+  //
+  // packages.txt is for Linux/system dependencies.
+  // requirements.txt is for Python dependencies.
+  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+
+  // This command runs when VS Code attaches to the container.
+  //
+  // In plain English:
+  // Start the Streamlit app automatically.
+  //
+  // app.py is the main Streamlit file.
+  // Streamlit usually runs on port 8501.
+  //
+  // The CORS and XSRF settings are disabled here because hosted preview environments
+  // like Codespaces sometimes need those settings turned off for the preview to work smoothly.
+  // This is generally fine for development, but should be reviewed before production use.
+  "postAttachCommand": {
+    "server": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false"
+  },
+
+  // This section tells Codespaces how to handle forwarded ports.
+  "portsAttributes": {
+
+    // Port 8501 is the default Streamlit port.
+    "8501": {
+
+      // This gives the port a friendly label in the Ports panel.
+      "label": "Application",
+
+      // When port 8501 is detected, Codespaces should automatically open a preview.
+      "onAutoForward": "openPreview"
+    }
+  },
+
+  // This explicitly forwards port 8501 so the Streamlit app can be viewed
+  // outside the container in the browser or VS Code preview window.
+  "forwardPorts": [
+    8501
+  ]
+}
+
+
+SIMPLIFIED SUMMARY
+==================
+
+This devcontainer.json file does the following:
+
+1. Creates a Python 3.11 Linux development environment.
+2. Opens README.md and app.py automatically.
+3. Installs Python-related VS Code extensions.
+4. Installs Linux packages from packages.txt if that file exists.
+5. Installs Python packages from requirements.txt if that file exists.
+6. Installs Streamlit.
+7. Automatically runs the Streamlit app using app.py.
+8. Opens the app preview on port 8501.
+
+
+OPTIONAL CLEANER VERSION OF updateContentCommand
+================================================
+
+The original updateContentCommand works, but it is dense and includes sudo apt upgrade -y,
+which can slow down container startup.
+
+A cleaner version would be:
+
+"updateContentCommand": "if [ -f packages.txt ]; then sudo apt update && sudo xargs apt install -y < packages.txt; fi; if [ -f requirements.txt ]; then pip3 install --user -r requirements.txt; fi; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'"
+
+Why this may be better:
+
+- Easier to read.
+- Avoids upgrading the whole Linux environment each time.
+- Still installs system packages, Python dependencies, and Streamlit.
+"""
+
+path = Path("/mnt/data/devcontainer_annotated_reference.txt")
+path.write_text(content, encoding="utf-8")
+
+print(f"Created: {path}")
