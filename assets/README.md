@@ -1,6 +1,6 @@
 # Assets
 
-Place your branding photo here:
+Place branding photo here:
 
 - `profile.jpg`  ← preferred (JPEG)
 - `profile.png`  ← also supported (PNG)
