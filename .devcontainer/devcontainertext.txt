@@ -12,7 +12,7 @@ runs your Streamlit app, and forwards port 8501 so you can preview the app.
 
 Important note:
 devcontainer.json supports JSONC, which means comments are allowed in the actual
-devcontainer.json file. However, this reference file is meant to explain the code
+devcontainer.json file. However I thought it best to provide this separately to explain the code
 without cluttering the working configuration file.
 
 
