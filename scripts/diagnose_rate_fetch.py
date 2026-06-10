@@ -1,10 +1,9 @@
 """
 diagnose_rate_fetch.py
 =======================
-One-off diagnostic: calls the FRED PMMS endpoint directly, bypassing
-Streamlit's cache and the try/except in rate_service.py, and prints
-the full response or full exception so we can see exactly what is
-failing on this machine.
+One-off diagnostic: tries the FRED PMMS CSV endpoint plus a few related
+URLs, bypassing Streamlit's cache and the try/except in rate_service.py,
+so we can see exactly which hosts/paths succeed or hang on this machine.
 
 Usage:
     python scripts/diagnose_rate_fetch.py
@@ -12,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import sys
+import time
 import traceback
 from pathlib import Path
 
@@ -21,19 +21,29 @@ import requests
 
 from src.rate_service import FRED_PMMS_30YR_URL, REQUEST_TIMEOUT
 
-print(f"requests version: {requests.__version__}")
-print(f"URL: {FRED_PMMS_30YR_URL}")
-print(f"Timeout: {REQUEST_TIMEOUT}s")
-print("-" * 60)
+CHECKS = [
+    ("FRED graph CSV (current code path)", FRED_PMMS_30YR_URL, REQUEST_TIMEOUT),
+    ("FRED graph CSV (longer timeout)", FRED_PMMS_30YR_URL, 25),
+    ("FRED series page (works in browser)", "https://fred.stlouisfed.org/series/MORTGAGE30US", REQUEST_TIMEOUT),
+    ("FRED API host (different subdomain)", "https://api.stlouisfed.org/fred/series/observations?series_id=MORTGAGE30US&file_type=json", REQUEST_TIMEOUT),
+    ("Sanity check (google.com)", "https://www.google.com", REQUEST_TIMEOUT),
+]
 
-try:
-    resp = requests.get(FRED_PMMS_30YR_URL, timeout=REQUEST_TIMEOUT)
-    print(f"Status code: {resp.status_code}")
-    print(f"Response length: {len(resp.text)} chars")
-    print("\nFirst 200 chars:")
-    print(resp.text[:200])
-    print("\nLast 200 chars:")
-    print(resp.text[-200:])
-except Exception:
-    print("EXCEPTION:")
-    traceback.print_exc()
+print(f"requests version: {requests.__version__}")
+print("=" * 60)
+
+for label, url, timeout in CHECKS:
+    print(f"\n{label}")
+    print(f"  URL: {url}")
+    print(f"  Timeout: {timeout}s")
+    start = time.monotonic()
+    try:
+        resp = requests.get(url, timeout=timeout)
+        elapsed = time.monotonic() - start
+        print(f"  -> Status {resp.status_code} in {elapsed:.2f}s, {len(resp.content)} bytes")
+    except Exception as exc:
+        elapsed = time.monotonic() - start
+        print(f"  -> FAILED after {elapsed:.2f}s: {type(exc).__name__}: {exc}")
+
+print("\n" + "=" * 60)
+print("Done.")
