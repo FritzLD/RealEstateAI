@@ -33,20 +33,24 @@ REFI_LOAN_AMOUNTS   = [150_000, 300_000]  # $ loan sizes for savings calc
 
 # ── LLM / embeddings ─────────────────────────────────────────────────────────
 # Read from .env locally; fall back to Streamlit secrets when deployed
-def _get_api_key() -> str:
-    key = os.getenv("OPENAI_API_KEY", "")
-    if not key:
+def _get_secret(env_var: str) -> str:
+    value = os.getenv(env_var, "")
+    if not value:
         try:
             import streamlit as st
-            key = st.secrets.get("OPENAI_API_KEY", "")
+            value = st.secrets.get(env_var, "")
         except Exception:
             pass
-    return key
+    return value
 
-OPENAI_API_KEY   = _get_api_key()
+OPENAI_API_KEY   = _get_secret("OPENAI_API_KEY")
 DEFAULT_MODEL    = "gpt-4o-mini"
 EMBEDDING_MODEL  = "text-embedding-3-small"
 TOP_K_RETRIEVAL  = 6
+
+# Free key from https://fred.stlouisfed.org/docs/api/api_key.html
+# Used to fetch the live Freddie Mac PMMS 30-year mortgage rate.
+FRED_API_KEY = _get_secret("FRED_API_KEY")
 
 # ── Streamlit ─────────────────────────────────────────────────────────────────
 APP_TITLE = "RealEstateAI – Dayton MSA Intelligence"

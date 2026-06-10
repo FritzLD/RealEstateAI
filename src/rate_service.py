@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import io
 from datetime import datetime
 
-import pandas as pd
 import requests
 import streamlit as st
 
+from src import config
 
-FRED_PMMS_30YR_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US"
+FRED_OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations"
+FRED_SERIES_ID = "MORTGAGE30US"
 
-# pd.read_csv() on a URL has no timeout and can hang indefinitely if FRED
-# doesn't respond. Fetch with requests + a short timeout so the chat never
-# hangs waiting on this and falls back to stored rate data instead.
 REQUEST_TIMEOUT = 8  # seconds
 
 
@@ -20,7 +17,7 @@ REQUEST_TIMEOUT = 8  # seconds
 def get_latest_pmms_30yr() -> dict | None:
     """
     Fetch the latest Freddie Mac PMMS 30-year fixed mortgage rate
-    using the FRED MORTGAGE30US series.
+    using FRED's official REST API for the MORTGAGE30US series.
 
     Returns
     -------
@@ -29,32 +26,41 @@ def get_latest_pmms_30yr() -> dict | None:
         {
             "rate": 6.36,
             "date": "2026-05-14",
+            "date_formatted": "May 14, 2026",
             "source": "Freddie Mac PMMS via FRED"
         }
     """
+    if not config.FRED_API_KEY:
+        return None
+
     try:
-        # FRED's CDN silently black-holes requests to this CSV endpoint when a
-        # browser-like "Mozilla/..." User-Agent is sent (connection opens, but
-        # no response ever arrives, so the request hangs until REQUEST_TIMEOUT).
-        # requests' default "python-requests/x.y.z" User-Agent is not blocked,
-        # so don't override it.
-        resp = requests.get(FRED_PMMS_30YR_URL, timeout=REQUEST_TIMEOUT)
+        resp = requests.get(
+            FRED_OBSERVATIONS_URL,
+            params={
+                "series_id": FRED_SERIES_ID,
+                "api_key": config.FRED_API_KEY,
+                "file_type": "json",
+                "sort_order": "desc",
+                "limit": 5,
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
         resp.raise_for_status()
+        data = resp.json()
 
-        df = pd.read_csv(io.StringIO(resp.text))
-        df = df.dropna()
-        df = df[df["MORTGAGE30US"] != "."]
+        for obs in data.get("observations", []):
+            if obs.get("value") in (None, "."):
+                continue
 
-        latest = df.iloc[-1]
-        observation_date = str(latest["observation_date"])
-        parsed_date = datetime.strptime(observation_date, "%Y-%m-%d")
+            parsed_date = datetime.strptime(obs["date"], "%Y-%m-%d")
+            return {
+                "rate": float(obs["value"]),
+                "date": obs["date"],
+                "date_formatted": f"{parsed_date:%B} {parsed_date.day}, {parsed_date.year}",
+                "source": "Freddie Mac PMMS via FRED",
+            }
 
-        return {
-            "rate": float(latest["MORTGAGE30US"]),
-            "date": observation_date,
-            "date_formatted": f"{parsed_date:%B} {parsed_date.day}, {parsed_date.year}",
-            "source": "Freddie Mac PMMS via FRED",
-        }
+        return None
 
     except Exception:
         return None
