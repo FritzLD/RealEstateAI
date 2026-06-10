@@ -210,9 +210,9 @@ class RealEstateRetriever(BaseRetriever):
             refi = RefiAnalyzer(self.loader.df)
             refi_summary = refi.generate_refi_summary()
             content = (
-                f"Current Mortgage Rate Data:\n"
-                f"- Current 30-year fixed rate: {r['current_rate']}%\n"
-                f"- Rate 1 year ago: {r['rate_1yr_ago']}%\n"
+                f"Stored Mortgage Rate Data (not live):\n"
+                f"- 30-year fixed rate as of {r['current_rate_date']}: {r['current_rate']}%\n"
+                f"- Rate 1 year before that: {r['rate_1yr_ago']}%\n"
                 f"- 5-year average: {r['rate_5yr_avg']}%\n\n"
                 f"{refi_summary}"
             )

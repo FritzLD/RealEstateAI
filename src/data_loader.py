@@ -288,7 +288,8 @@ class RealEstateDataLoader:
             return {}
         r = self.df["30yrFRM"].dropna()
         return {
-            "current_rate":  round(float(r.iloc[-1]), 2),
+            "current_rate":      round(float(r.iloc[-1]), 2),
+            "current_rate_date": r.index[-1].strftime("%B %Y"),
             "rate_1yr_ago":  round(float(r.iloc[-13]) if len(r) >= 13 else float(r.iloc[0]), 2),
             "rate_peak":     round(float(r.max()), 2),
             "rate_peak_date": r.idxmax().strftime("%B %Y"),
@@ -357,8 +358,9 @@ class RealEstateDataLoader:
             docs.append(Document(
                 page_content=(
                     f"30-Year Fixed Mortgage Rate History (Dayton MSA / National):\n"
-                    f"- Current rate: {r['current_rate']}%\n"
-                    f"- Rate one year ago: {r['rate_1yr_ago']}%\n"
+                    f"- Most recent stored rate, as of {r['current_rate_date']}: {r['current_rate']}% "
+                    f"(this is stored/historical data, not a live or current rate)\n"
+                    f"- Rate one year before that: {r['rate_1yr_ago']}%\n"
                     f"- All-time high in dataset: {r['rate_peak']}% ({r['rate_peak_date']})\n"
                     f"- All-time low in dataset: {r['rate_low']}% ({r['rate_low_date']})\n"
                     f"- 5-year average rate: {r['rate_5yr_avg']}%"
