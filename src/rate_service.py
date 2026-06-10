@@ -63,7 +63,7 @@ def build_pmms_context() -> str:
 
     if not pmms:
         return (
-            "Latest Freddie Mac PMMS rate could not be retrieved. "
+            "Today's live Freddie Mac PMMS rate could not be retrieved. "
             "Do not provide a current mortgage rate unless it is available in the retrieved context, "
             "and do not imply that any stored rate is today's live pricing."
         )

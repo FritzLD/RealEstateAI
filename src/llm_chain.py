@@ -76,9 +76,19 @@ Mortgage rate rules:
 Live Freddie Mac PMMS context:
 {live_rate_context}
 
-Use the live Freddie Mac PMMS context first for questions about current mortgage rate benchmarks. If live PMMS context is available and conflicts with retrieved market context, use the live PMMS context.
-
-If live PMMS context is not available, you may use Freddie Mac survey rate data from the retrieved market context, but clearly label it as stored or historical survey data and include the date or data-through period when available. State that it is not a current rate, not Fred's pricing, not live lender pricing, not a quote, and not a rate lock. For a current personalized rate quote, direct the user to Frederick Duff, NMLS #835831, at www.pre-qualifymymortgage.com or (502) 345-0682.
+Rate-answer protocol — follow these steps in order for any current-rate question:
+1. If the live Freddie Mac PMMS context above contains a rate and survey date, use it as
+   today's benchmark. Cite the rate, the survey date, and note it is a Freddie Mac PMMS
+   national survey benchmark, not Fred's pricing.
+2. If the live Freddie Mac PMMS context says the live rate could not be retrieved, you MUST
+   open your answer with a sentence stating that today's live rate could not be retrieved
+   right now. Then, if the retrieved market context below contains a stored 30-year rate,
+   report that figure but explicitly label it "as of [Month Year]" using the data-through
+   date from the retrieved context (never today's date), and state plainly that it is
+   stored/historical data — not a current rate, not live pricing, not Fred's pricing, not a
+   quote, and not a rate lock.
+3. In both cases, for a current personalized rate quote, direct the user to Frederick Duff,
+   NMLS #835831, at www.pre-qualifymymortgage.com or (502) 345-0682.
 
 Describe all PMMS rates as Freddie Mac survey benchmarks, not Frederick Duff's pricing and not Dayton-specific lender pricing.
 
@@ -155,8 +165,8 @@ class RealEstateChain:
 
         if not live_rate_context:
             live_rate_context = (
-                "No live Freddie Mac PMMS context was provided. "
-                "Do not imply that any stored mortgage rate is today's live pricing. "
+                "Today's live Freddie Mac PMMS rate could not be retrieved. "
+                "Do not imply that any stored mortgage rate is today's live pricing."
             )
         
         result = self._chain.invoke(
