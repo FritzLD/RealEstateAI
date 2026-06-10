@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from datetime import datetime
 
 import pandas as pd
 import requests
@@ -44,10 +45,13 @@ def get_latest_pmms_30yr() -> dict | None:
         df = df[df["MORTGAGE30US"] != "."]
 
         latest = df.iloc[-1]
+        observation_date = str(latest["observation_date"])
+        parsed_date = datetime.strptime(observation_date, "%Y-%m-%d")
 
         return {
             "rate": float(latest["MORTGAGE30US"]),
-            "date": str(latest["observation_date"]),
+            "date": observation_date,
+            "date_formatted": f"{parsed_date:%B} {parsed_date.day}, {parsed_date.year}",
             "source": "Freddie Mac PMMS via FRED",
         }
 
@@ -70,9 +74,11 @@ def build_pmms_context() -> str:
 
     return f"""
 Latest Freddie Mac PMMS benchmark:
-- 30-year fixed-rate mortgage survey rate: {pmms["rate"]:.2f}%
-- Survey date: {pmms["date"]}
+- 30-year fixed-rate mortgage survey rate: {pmms["rate"]:.2f}% as of {pmms["date_formatted"]}
 - Source: {pmms["source"]}
-- This is a national survey benchmark only.
-- For a actual interest rate in Ohio, Kentucky or Florida please contact Frederick Duff at (502)345-0682 or you may apply online for a free evaluation at www.pre-qualifymymortgage.com. Queen City is a Equal Opportunity Lender. 
+- PMMS results are released weekly on Thursdays at 12 p.m. ET and are an average of loan
+  rates offered the prior Thursday through Wednesday. Always state the rate together with
+  this "as of {pmms["date_formatted"]}" date — never describe it as today's rate.
+- This is a national survey benchmark only, not Fred's pricing and not a live rate quote.
+- For a actual interest rate in Ohio, Kentucky or Florida please contact Frederick Duff at (502)345-0682 or you may apply online for a free evaluation at www.pre-qualifymymortgage.com. Queen City is a Equal Opportunity Lender.
 """
