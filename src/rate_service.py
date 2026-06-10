@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import io
+
 import pandas as pd
+import requests
 import streamlit as st
 
 
 FRED_PMMS_30YR_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US"
+
+# pd.read_csv() on a URL has no timeout and can hang indefinitely if FRED
+# doesn't respond. Fetch with requests + a short timeout so the chat never
+# hangs waiting on this and falls back to stored rate data instead.
+REQUEST_TIMEOUT = 8  # seconds
 
 
 @st.cache_data(ttl=60 * 60 * 6, show_spinner=False)
@@ -24,8 +32,14 @@ def get_latest_pmms_30yr() -> dict | None:
         }
     """
     try:
-        df = pd.read_csv(FRED_PMMS_30YR_URL)
+        resp = requests.get(
+            FRED_PMMS_30YR_URL,
+            timeout=REQUEST_TIMEOUT,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; RealEstateAI/1.0)"},
+        )
+        resp.raise_for_status()
 
+        df = pd.read_csv(io.StringIO(resp.text))
         df = df.dropna()
         df = df[df["MORTGAGE30US"] != "."]
 
