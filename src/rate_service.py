@@ -33,11 +33,12 @@ def get_latest_pmms_30yr() -> dict | None:
         }
     """
     try:
-        resp = requests.get(
-            FRED_PMMS_30YR_URL,
-            timeout=REQUEST_TIMEOUT,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; RealEstateAI/1.0)"},
-        )
+        # FRED's CDN silently black-holes requests to this CSV endpoint when a
+        # browser-like "Mozilla/..." User-Agent is sent (connection opens, but
+        # no response ever arrives, so the request hangs until REQUEST_TIMEOUT).
+        # requests' default "python-requests/x.y.z" User-Agent is not blocked,
+        # so don't override it.
+        resp = requests.get(FRED_PMMS_30YR_URL, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
 
         df = pd.read_csv(io.StringIO(resp.text))
