@@ -106,7 +106,7 @@ def render_sidebar() -> str:
         # Also accept .png
         photo_path = Path(__file__).parent / "assets" / "profile.png"
     if photo_path.exists():
-        st.sidebar.image(str(photo_path), use_column_width=True)
+        st.sidebar.image(str(photo_path), width="stretch")
 
     st.sidebar.title(f"{config.APP_ICON} RealEstateAI")
     st.sidebar.markdown("**Dayton MSA Market Intelligence**")
