@@ -5,6 +5,8 @@ Run: streamlit run app.py
 Tab 1 – Market Dashboard  : live KPIs + key charts
 Tab 2 – AI Agent Chat     : conversational real estate analyst
 Tab 3 – Forecasts & Analysis : 12-month outlook, refi windows, model evaluation
+Tab 4 – Mortgage Scenarios   : payment, program-fee, and amortization calculator
+                               (deterministic engine in mortgage_lab/)
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ from src.refi_analysis import RefiAnalyzer
 from src.retriever import RealEstateRetriever
 from src.visualizations import RealEstateVisualizer
 from src.rate_service import build_pmms_context
+from mortgage_lab.ui import render_mortgage_tab
 
 # ── Page config ───────────────────────────────────────────────────────────────
 
@@ -424,13 +427,20 @@ def main() -> None:
 
     system = st.session_state.system
 
-    tab1, tab2, tab3 = st.tabs(["📊 Market Dashboard", "🤖 AI Analyst Chat", "📈 Forecasts & Analysis"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Market Dashboard",
+        "🤖 AI Analyst Chat",
+        "📈 Forecasts & Analysis",
+        "🏠 Mortgage Scenarios",
+    ])
     with tab1:
         render_dashboard(system)
     with tab2:
         render_chat(system)
     with tab3:
         render_forecasts(system)
+    with tab4:
+        render_mortgage_tab(title="Mortgage Scenarios")
 
 
 if __name__ == "__main__":
