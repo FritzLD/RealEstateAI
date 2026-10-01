@@ -124,7 +124,7 @@ Senior Mortgage Banker / Data Scientist
 📞 (513) 445-9811 &nbsp;|&nbsp; (502) 345-0682
 🪪 NMLS 835831                           
 📍 Licensed in Ohio, Kentucky & Florida
-🌐 [Apply Online](https://www.pre-qualifymymortgage.com)                     
+🌐 [Apply Online](http://www.pre-qualifymymortgage.com)                     
     Queen City Mortgage is a Equal Housing Lender.         
         """
     )
