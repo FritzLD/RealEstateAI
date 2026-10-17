@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src import config
+from src import rate_service
 from src.rate_service import build_pmms_context, get_latest_pmms_30yr
 
 print(f"FRED_API_KEY set: {bool(config.FRED_API_KEY)}")
@@ -23,5 +24,7 @@ print("-" * 60)
 
 result = get_latest_pmms_30yr()
 print(f"get_latest_pmms_30yr() -> {result}")
+if result is None:
+    print(f"Reason: {rate_service.LAST_ERROR}")
 print("-" * 60)
 print(build_pmms_context())
